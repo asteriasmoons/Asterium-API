@@ -11,7 +11,7 @@ const RUN_LIMIT_MS = 5 * 60 * 1000;
 const TIME_ZONE = "America/Chicago";
 const FIRST_RUN_DAY = Date.UTC(2026, 9, 24) / 86_400_000;
 
-// Railway cron uses UTC; this check honors Tuesday at 11:15 AM Central
+// Railway cron uses UTC; this check honors Tuesday at 11:30 AM Central
 // regardless of daylight saving time. Railway's cron must cover both UTC hours.
 function isScheduledRun(now = new Date()): boolean {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -26,14 +26,14 @@ function isScheduledRun(now = new Date()): boolean {
   return (
     value("weekday") === "Tue" &&
     value("hour") === "11" &&
-    value("minute") === "15"
+    value("minute") === "30"
   );
 }
 
 async function main(): Promise<void> {
   if (process.env.BOOK_KNOWLEDGE_RUN_NOW !== "true" && !isScheduledRun()) {
     console.log(
-      "[bookKnowledge] Skipping: outside the Tuesday 11:15 AM Central schedule",
+      "[bookKnowledge] Skipping: outside the Tuesday 11:30 AM Central schedule",
     );
     return;
   }
