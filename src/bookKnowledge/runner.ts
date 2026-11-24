@@ -11,29 +11,29 @@ const RUN_LIMIT_MS = 5 * 60 * 1000;
 const TIME_ZONE = "America/Chicago";
 const FIRST_RUN_DAY = Date.UTC(2026, 9, 24) / 86_400_000;
 
-// Railway cron is UTC. Schedule both possible 8 AM Central UTC hours and
-// run only at 8 AM local time on alternating calendar days from Oct 24, 2026.
+// Railway cron uses UTC; this check honors Tuesday at 11:15 AM Central
+// regardless of daylight saving time. Railway's cron must cover both UTC hours.
 function isScheduledRun(now = new Date()): boolean {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+    weekday: "short",
     hour: "2-digit",
+    minute: "2-digit",
     hourCycle: "h23",
   }).formatToParts(now);
-  const value = (type: string): number =>
-    Number(parts.find((part) => part.type === type)?.value);
-  if (value("hour") !== 8) return false;
-  const localDay =
-    Date.UTC(value("year"), value("month") - 1, value("day")) / 86_400_000;
-  return localDay >= FIRST_RUN_DAY && (localDay - FIRST_RUN_DAY) % 2 === 0;
+  const value = (type: string): string | undefined =>
+    parts.find((part) => part.type === type)?.value;
+  return (
+    value("weekday") === "Tue" &&
+    value("hour") === "11" &&
+    value("minute") === "15"
+  );
 }
 
 async function main(): Promise<void> {
   if (process.env.BOOK_KNOWLEDGE_RUN_NOW !== "true" && !isScheduledRun()) {
     console.log(
-      "[bookKnowledge] Skipping: outside the every-other-day 8 AM Central schedule",
+      "[bookKnowledge] Skipping: outside the Tuesday 11:15 AM Central schedule",
     );
     return;
   }
@@ -97,7 +97,7 @@ async function main(): Promise<void> {
       "graphic novels",
       "young adult",
     ];
-    const runIndex = Math.floor((Date.now() / 86_400_000 - FIRST_RUN_DAY) / 2);
+    const runIndex = Math.floor((Date.now() / 86_400_000 - FIRST_RUN_DAY) / 7);
     const rotated = Array.from(
       { length: 10 },
       (_, index) => topics[(runIndex * 10 + index) % topics.length]!,
