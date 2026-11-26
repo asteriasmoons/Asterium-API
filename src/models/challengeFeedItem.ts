@@ -52,6 +52,10 @@ const challengeFeedItemSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    challengeDescription: { type: String, default: "", trim: true },
+    linkedBookID: { type: String, default: "", trim: true },
+    linkedBookTitle: { type: String, default: "", trim: true },
+    mood: { type: String, default: "", trim: true },
 
     cycleID: {
       type: String,

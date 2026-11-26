@@ -52,6 +52,9 @@ const challengePostSchema = new mongoose.Schema(
       default: "",
       index: true,
     },
+    linkedBookTitle: { type: String, default: "", trim: true },
+    linkedChallengeTitle: { type: String, default: "", trim: true },
+    linkedChallengeDescription: { type: String, default: "", trim: true },
 
     // Optional linked challenge
     linkedChallengeID: {

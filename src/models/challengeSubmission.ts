@@ -4,6 +4,9 @@ import { lumeyDB } from "../config/databases";
 const challengeSubmissionSchema = new mongoose.Schema(
   {
     challengeID: { type: String, required: true },
+    challengeTitle: { type: String, default: "", trim: true },
+    challengeDescription: { type: String, default: "", trim: true },
+    linkedBookTitle: { type: String, default: "", trim: true },
     entryID: { type: String, default: "" },
 
     userID: { type: String, required: true },

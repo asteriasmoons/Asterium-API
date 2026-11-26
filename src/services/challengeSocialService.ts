@@ -60,8 +60,22 @@ export async function getChallengeFeed() {
     .sort({ createdDate: -1 })
     .lean();
 
+  const postByID = new Map<string, any>(posts.map((post: any) => [String(post._id), post]));
+  const submissionByID = new Map<string, any>(submissions.map((submission: any) => [String(submission._id), submission]));
+
   return {
-    feedItems,
+    feedItems: feedItems.map((item: any) => {
+      const post: any = postByID.get(String(item.postID));
+      const submission: any = submissionByID.get(String(item.submissionID));
+      return {
+        ...item,
+        mood: cleanString(post?.mood) || cleanString(item.mood),
+        linkedBookID: cleanString(post?.linkedBookID) || cleanString(item.linkedBookID) || cleanString(submission?.linkedBookIDs?.[0]),
+        linkedBookTitle: cleanString(post?.linkedBookTitle) || cleanString(item.linkedBookTitle) || cleanString(submission?.linkedBookTitle),
+        challengeTitle: cleanString(item.challengeTitle) || cleanString(post?.linkedChallengeTitle) || cleanString(submission?.challengeTitle),
+        challengeDescription: cleanString(item.challengeDescription) || cleanString(post?.linkedChallengeDescription) || cleanString(submission?.challengeDescription),
+      };
+    }),
     submissions,
     posts,
     comments,
@@ -89,6 +103,9 @@ export async function createSubmission(input: any) {
 
   const submission = await LumeyChallengeSubmission.create({
     challengeID: input.challengeID,
+    challengeTitle: cleanString(input.challengeTitle),
+    challengeDescription: cleanString(input.challengeDescription),
+    linkedBookTitle: cleanString(input.linkedBookTitle),
     entryID: input.entryID ?? "",
     userID: input.userID,
     username: cleanString(input.username) || "Reader",
@@ -130,6 +147,8 @@ export async function createSubmission(input: any) {
       submissionID: String(submission._id),
       validationMessage: submission.validationMessage,
       challengeTitle: cleanString(input.challengeTitle),
+      challengeDescription: cleanString(input.challengeDescription),
+      linkedBookTitle: cleanString(input.linkedBookTitle),
     });
   }
 
@@ -140,6 +159,8 @@ export async function approveSubmissionAndPostToFeed(input: {
   submissionID: string;
   validationMessage?: string;
   challengeTitle?: string;
+  challengeDescription?: string;
+  linkedBookTitle?: string;
 }) {
   if (!input.submissionID) throw new Error("submissionID is required.");
 
@@ -159,6 +180,9 @@ export async function approveSubmissionAndPostToFeed(input: {
   submission.validationMessage =
     cleanString(input.validationMessage) || submission.validationMessage;
   submission.approvedDate = new Date();
+  submission.challengeTitle = cleanString(input.challengeTitle) || cleanString(submission.challengeTitle);
+  submission.challengeDescription = cleanString(input.challengeDescription) || cleanString(submission.challengeDescription);
+  submission.linkedBookTitle = cleanString(input.linkedBookTitle) || cleanString(submission.linkedBookTitle);
 
   if (submission.postedToFeed && submission.feedItemID) {
     await submission.save();
@@ -166,6 +190,12 @@ export async function approveSubmissionAndPostToFeed(input: {
     const existingFeedItem = await LumeyChallengeFeedItem.findById(
       submission.feedItemID,
     );
+    if (existingFeedItem) {
+      for (const field of ["challengeTitle", "challengeDescription", "linkedBookTitle"]) {
+        if (!cleanString(existingFeedItem[field]) && cleanString(submission[field])) existingFeedItem[field] = submission[field];
+      }
+      await existingFeedItem.save();
+    }
 
     return {
       submission,
@@ -180,7 +210,10 @@ export async function approveSubmissionAndPostToFeed(input: {
     userID: submission.userID,
     username: submission.username,
     challengeID: submission.challengeID,
-    challengeTitle: cleanString(input.challengeTitle),
+    challengeTitle: submission.challengeTitle,
+    challengeDescription: submission.challengeDescription,
+    linkedBookID: submission.linkedBookIDs?.[0] || "",
+    linkedBookTitle: submission.linkedBookTitle,
     cycleID: submission.cycleID,
     cycleStartDate: submission.cycleStartDate,
     cycleEndDate: submission.cycleEndDate,
@@ -306,9 +339,11 @@ export async function createFeedPost(input: any) {
   if (!input.userID) throw new Error("userID is required.");
 
   const text = cleanString(input.text);
-  const photoURL = cleanString(input.photoURL);
+  const suppliedBase64 = cleanString(input.photoBase64);
+  const photoURL = cleanString(input.photoURL) || (/^https:\/\//i.test(suppliedBase64) ? suppliedBase64 : "");
+  const photoBase64 = photoURL ? "" : suppliedBase64;
 
-  if (!text && !photoURL) {
+  if (!text && !photoURL && !photoBase64) {
     throw new Error("A feed post needs text, a photo, or both.");
   }
 
@@ -319,10 +354,13 @@ export async function createFeedPost(input: any) {
     username,
     text,
     photoURL,
-    photoBase64: "",
+    photoBase64,
     photoCaption: cleanString(input.photoCaption),
     linkedBookID: cleanString(input.linkedBookID),
+    linkedBookTitle: cleanString(input.linkedBookTitle),
     linkedChallengeID: cleanString(input.linkedChallengeID),
+    linkedChallengeTitle: cleanString(input.linkedChallengeTitle),
+    linkedChallengeDescription: cleanString(input.linkedChallengeDescription),
     mood: cleanString(input.mood),
     containsSpoilers: Boolean(input.containsSpoilers),
     visibility: input.visibility === "followers" ? "followers" : "public",
@@ -339,10 +377,14 @@ export async function createFeedPost(input: any) {
     userID: post.userID,
     username: post.username,
     challengeID: post.linkedChallengeID,
-    challengeTitle: "",
+    challengeTitle: post.linkedChallengeTitle,
+    challengeDescription: post.linkedChallengeDescription,
+    linkedBookID: post.linkedBookID,
+    linkedBookTitle: post.linkedBookTitle,
+    mood: post.mood,
     text: post.text,
     photoURL: post.photoURL,
-    photoBase64: "",
+    photoBase64: post.photoBase64,
     likeCount: 0,
     commentCount: 0,
     createdDate: post.createdDate,

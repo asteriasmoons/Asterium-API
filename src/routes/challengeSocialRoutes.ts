@@ -81,6 +81,8 @@ router.post(
         submissionID,
         validationMessage: req.body.validationMessage,
         challengeTitle: req.body.challengeTitle,
+        challengeDescription: req.body.challengeDescription,
+        linkedBookTitle: req.body.linkedBookTitle,
       });
 
       return res.status(200).json(result);
