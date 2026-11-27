@@ -35,7 +35,7 @@ if (!archivePath) {
     }
     if (!token) throw new Error("An upload token is required.");
     const endpoint = (
-      process.env.LOOMEY_API_URL || "https://appapi.voxiverse.ink"
+      process.env.LOOMEY_API_URL || "https://appsapi.asterium.im"
     ).replace(/\/$/, "");
     let saved = 0,
       reused = 0,

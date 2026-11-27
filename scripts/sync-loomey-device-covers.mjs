@@ -80,7 +80,7 @@ for (const entry of entries) {
   form.set("cover", new Blob([bytes], { type: mime }), "cover");
   try {
     const response = await fetch(
-      (process.env.LOOMEY_API_URL || "https://appapi.voxiverse.ink") +
+      (process.env.LOOMEY_API_URL || "https://appsapi.asterium.im") +
         "/api/books/covers",
       {
         method: "POST",

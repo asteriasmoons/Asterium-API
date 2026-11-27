@@ -56,7 +56,7 @@ if (!filePath || !title || !author) {
       basename(filePath),
     );
     const endpoint =
-      process.env.LOOMEY_API_URL || "https://appapi.voxiverse.ink";
+      process.env.LOOMEY_API_URL || "https://appsapi.asterium.im";
     const response = await fetch(
       `${endpoint.replace(/\/$/, "")}/api/books/covers`,
       {
